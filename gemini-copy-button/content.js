@@ -18,9 +18,7 @@ function createCopyButton(messageContainer) {
         cursor: pointer;
         font-size: 13px;
         margin-left: 8px;
-        position: absolute;
-        right: 16px;
-        bottom: 8px;
+        float: right;
     `;
 
     // Add hover effect
@@ -57,13 +55,17 @@ function createCopyButton(messageContainer) {
         });
     });
 
-    // Find or create the tools container in the message
-    const toolsContainer = messageContainer.querySelector('.actions-container') || 
-                         messageContainer.querySelector('.model-prompt-container');
-    if (toolsContainer) {
-        toolsContainer.style.position = 'relative';
-        toolsContainer.appendChild(copyButton);
+    // Find or create the footer container in the message
+    let footerContainer = messageContainer.querySelector('.turn-footer');
+    if (!footerContainer) {
+        footerContainer = document.createElement('div');
+        footerContainer.className = 'turn-footer';
+        footerContainer.style.padding = '8px';
+        footerContainer.style.marginTop = '8px';
+        messageContainer.appendChild(footerContainer);
     }
+    
+    footerContainer.appendChild(copyButton);
 }
 
 // Create an observer to watch for new messages
