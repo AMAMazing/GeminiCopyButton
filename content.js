@@ -93,6 +93,10 @@ function createCopyButton(messageContainer) {
 function extractContentWithMarkdown(element) {
     let content = '';
     for (const child of element.childNodes) {
+        // Skip the footer element
+        if (child.nodeType === Node.ELEMENT_NODE && child.tagName.toLowerCase() === 'footer') {
+            continue;
+        }
         if (child.nodeType === Node.TEXT_NODE) {
             content += child.textContent;
         } else if (child.nodeType === Node.ELEMENT_NODE) {
@@ -122,7 +126,7 @@ function extractContentWithMarkdown(element) {
                     }
                     break;
                 case 'code':
-                        content += "`" + child.textContent + "`";
+                    content += "`" + child.textContent + "`";
                     break;
                 case 'strong':
                 case 'b':
@@ -135,7 +139,7 @@ function extractContentWithMarkdown(element) {
                 case 'ul':
                     content += "\n"; // Add a newline before and after lists
                     for (const li of child.children) {
-                      content += `- ${extractContentWithMarkdown(li)}\n`;
+                        content += `- ${extractContentWithMarkdown(li)}\n`;
                     }
                     content += "\n";
                     break;
@@ -143,8 +147,8 @@ function extractContentWithMarkdown(element) {
                     content += "\n"; // Add a newline before and after lists
                     let index = 1;
                     for (const li of child.children) {
-                      content += `${index}. ${extractContentWithMarkdown(li)}\n`;
-                      index++;
+                        content += `${index}. ${extractContentWithMarkdown(li)}\n`;
+                        index++;
                     }
                     content += "\n";
                     break;
@@ -159,6 +163,7 @@ function extractContentWithMarkdown(element) {
     }
     return content;
 }
+
 
 // Create an observer to watch for new messages
 function observeMessages() {
