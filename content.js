@@ -1,4 +1,15 @@
 // content.js
+function removeFooterBar() {
+    const style = document.createElement('style');
+    style.innerHTML = `
+        footer.gmat-body-medium.ng-star-inserted {
+            display: none !important;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+
 function createCopyButton(messageContainer) {
     // Check if button already exists in this container
     if (messageContainer.querySelector('.custom-copy-button')) {
@@ -173,9 +184,13 @@ function observeMessages() {
 
 // Initialize
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', observeMessages);
+    document.addEventListener('DOMContentLoaded', () => {
+        observeMessages();
+        removeFooterBar(); 
+    });
 } else {
     observeMessages();
+    removeFooterBar(); 
 }
 
 // Handle existing messages
