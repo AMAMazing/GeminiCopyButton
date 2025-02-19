@@ -1,13 +1,4 @@
 // content.js
-function removeFooterBar() {
-    const style = document.createElement('style');
-    style.innerHTML = `
-        footer.gmat-body-medium.ng-star-inserted {
-            display: none !important;
-        }
-    `;
-    document.head.appendChild(style);
-}
 
 
 function createCopyButton(messageContainer) {
@@ -97,72 +88,34 @@ function extractContentWithMarkdown(element) {
         if (child.nodeType === Node.ELEMENT_NODE && child.tagName.toLowerCase() === 'footer') {
             continue;
         }
+
         if (child.nodeType === Node.TEXT_NODE) {
             content += child.textContent;
         } else if (child.nodeType === Node.ELEMENT_NODE) {
             switch (child.tagName.toLowerCase()) {
-                case 'h1':
-                    content += `# ${extractContentWithMarkdown(child)}\n`;
-                    break;
-                case 'h2':
-                    content += `## ${extractContentWithMarkdown(child)}\n`;
-                    break;
-                case 'h3':
-                    content += `### ${extractContentWithMarkdown(child)}\n`;
-                    break;
-                case 'h4':
-                    content += `#### ${extractContentWithMarkdown(child)}\n`;
-                    break;
-                case 'h5':
-                    content += `##### ${extractContentWithMarkdown(child)}\n`;
-                    break;
-                case 'h6':
-                    content += `###### ${extractContentWithMarkdown(child)}\n`;
-                    break;
-                case 'pre':
-                    if (child.querySelector('code')) {
-                        const codeContent = extractContentWithMarkdown(child.querySelector('code'));
-                        content += "```\n" + codeContent + "\n```\n";
+                case 'pre': {
+                    // Preserve multi-line formatting for code blocks
+                    const codeElement = child.querySelector('code');
+                    if (codeElement) {
+                        content += `\`\`\`\n${codeElement.textContent}\n\`\`\`\n`;
                     }
                     break;
-                case 'code':
-                    content += "`" + child.textContent + "`";
+                }
+                case 'code': {
+                    // Inline code handling
+                    content += `\`${child.textContent}\``;
                     break;
-                case 'strong':
-                case 'b':
-                    content += "**" + extractContentWithMarkdown(child) + "**";
-                    break;
-                case 'em':
-                case 'i':
-                    content += "*" + extractContentWithMarkdown(child) + "*";
-                    break;
-                case 'ul':
-                    content += "\n"; // Add a newline before and after lists
-                    for (const li of child.children) {
-                        content += `- ${extractContentWithMarkdown(li)}\n`;
-                    }
-                    content += "\n";
-                    break;
-                case 'ol':
-                    content += "\n"; // Add a newline before and after lists
-                    let index = 1;
-                    for (const li of child.children) {
-                        content += `${index}. ${extractContentWithMarkdown(li)}\n`;
-                        index++;
-                    }
-                    content += "\n";
-                    break;
-                case 'a':
-                    const href = child.getAttribute('href');
-                    content += `[${extractContentWithMarkdown(child)}](${href})`;
-                    break;
-                default:
-                    content += extractContentWithMarkdown(child); // Recurse for other elements
+                }
+                default: {
+                    // Recursively process other elements
+                    content += extractContentWithMarkdown(child);
+                }
             }
         }
     }
     return content;
 }
+
 
 
 // Create an observer to watch for new messages
