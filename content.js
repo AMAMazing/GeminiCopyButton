@@ -144,11 +144,9 @@ function observeMessages() {
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         observeMessages();
-        removeFooterBar(); 
     });
 } else {
     observeMessages();
-    removeFooterBar(); 
 }
 
 // Handle existing messages

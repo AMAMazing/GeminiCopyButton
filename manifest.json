@@ -3,9 +3,7 @@
   "name": "Gemini Copy Button Mover",
   "version": "1.0",
   "description": "Moves the copy rendered button to next to the like and dislike buttons on Google AI Studio",
-  "permissions": [
-    "activeTab"
-  ],
+  "permissions": [],
   "content_scripts": [
     {
       "matches": ["https://aistudio.google.com/*"],
