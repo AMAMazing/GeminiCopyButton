@@ -1,6 +1,5 @@
 // content.js
 
-
 function createCopyButton(messageContainer) {
     // Check if button already exists in this container
     if (messageContainer.querySelector('.custom-copy-button')) {
@@ -46,7 +45,9 @@ function createCopyButton(messageContainer) {
             responseContent = extractContentWithMarkdown(responseElement);
         }
 
-        // Copy to clipboard
+        // Copy to clipboard, removing IGNORE_WHEN_COPYING tags
+        responseContent = responseContent.replace(/IGNORE_WHEN_COPYING_START[\s\S]*?IGNORE_WHEN_COPYING_END/g, ''); // Key change here
+
         navigator.clipboard.writeText(responseContent).then(() => {
             copyButton.innerHTML = 'Copied!';
             copyButton.style.backgroundColor = '#34a853';
@@ -85,7 +86,7 @@ function extractContentWithMarkdown(element) {
     let content = '';
     for (const child of element.childNodes) {
         // Skip the footer element
-        if (child.nodeType === Node.ELEMENT_NODE && child.tagName.toLowerCase() === 'footer') {
+        if (child.nodeType === Node.ELEMENT_NODE && child.classList.contains('turn-footer')) {
             continue;
         }
 
