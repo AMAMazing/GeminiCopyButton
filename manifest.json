@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Gemini Copy Button Mover",
+  "name": "AI Studio Copy Button",
   "version": "2.0.1",
   "description": "Moves the copy rendered button to next to the like and dislike buttons on Google AI Studio",
   "permissions": [],
