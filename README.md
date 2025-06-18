@@ -41,3 +41,7 @@ Please use this code with caution and be aware of the potential risks associated
 ## Acknowledgments
 
 This extension was created to enhance the user experience of Google AI Studio.
+
+
+
+### To Do: Remove "Generated _______"
