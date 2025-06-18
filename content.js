@@ -221,19 +221,36 @@ function createCopyButton(messageContainer) {
 
   copyButton.addEventListener('click', (event) => {
     event.stopPropagation(); // Prevent triggering other click listeners on parent elements
+    
     const responseElement = messageContainer.querySelector('.model-prompt-container');
     let responseContent = '';
+
     if (responseElement) {
-        responseContent = responseElement.innerText.trim();
+        // To safely remove the "Generated..." text without affecting the live page,
+        // we clone the element first.
+        const clonedElement = responseElement.cloneNode(true);
+
+        // Find and remove the "Generated <language>" label from the clone.
+        // From the UI, this appears to be a <span class="name"> element.
+        const generatedLabel = clonedElement.querySelector('span.name');
+        if (generatedLabel && /^(Generated|generates)/i.test(generatedLabel.innerText)) {
+            generatedLabel.remove();
+        }
+
+        // Get the text content from the cleaned-up clone
+        responseContent = clonedElement.innerText;
+
     } else {
-        // Fallback: If .model-prompt-container is not directly inside messageContainer,
-        // we might need a more specific selector or to adjust what 'messageContainer' refers to.
-        // For now, if not found, responseContent remains empty.
+        // Fallback if the main container isn't found
         console.warn("Copy button: .model-prompt-container not found within the provided message container for copying.");
     }
 
     // Remove IGNORE_WHEN_COPYING blocks
     responseContent = responseContent.replace(/IGNORE_WHEN_COPYING_START[\s\S]*?IGNORE_WHEN_COPYING_END/g, '');
+
+    // Finally, trim any leading/trailing whitespace that might be left over.
+    responseContent = responseContent.trim();
+
 
     navigator.clipboard.writeText(responseContent).then(() => {
       copyButton.innerHTML = 'Copied!';
