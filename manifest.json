@@ -1,9 +1,12 @@
 {
   "manifest_version": 3,
   "name": "AI Studio Copy Button",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Moves the copy rendered button to next to the like and dislike buttons on Google AI Studio",
   "permissions": [],
+  "action": {
+    "default_icon": "icon.png"
+  },
   "content_scripts": [
     {
       "matches": ["https://aistudio.google.com/*"],
