@@ -1,15 +1,18 @@
 {
   "manifest_version": 3,
-  "name": "AI Studio Copy Button",
-  "version": "3.1.0",
-  "description": "Moves the copy rendered button to next to the like and dislike buttons on Google AI Studio",
+  "name": "Gemini Copy button",
+  "version": "4.0.0",
+  "description": "Adds a custom copy button to Google's AI Studio and Gemini responses, and sets a static input placeholder for AI studio too!.",
   "permissions": [],
   "action": {
     "default_icon": "icon.png"
   },
   "content_scripts": [
     {
-      "matches": ["https://aistudio.google.com/*"],
+      "matches": [
+        "https://aistudio.google.com/*",
+        "https://gemini.google.com/*"
+      ],
       "js": ["content.js"]
     }
   ]

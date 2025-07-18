@@ -1,5 +1,6 @@
 // content.js
 
+//  Placeholder Text Logic (Unchanged)
 const DESIRED_PLACEHOLDER_TEXT = "Type something";
 let textareaSpecificObserver = null;
 let rollingPlaceholderSpecificObserver = null;
@@ -16,20 +17,16 @@ function disconnectSpecificObservers() {
 }
 
 function ensureStaticInputPlaceholder() {
-    // Target the textarea element
-    // The selector combines class and attribute checks for robustness.
+    // This function remains unchanged and will continue to manage the input placeholder text.
     const textarea = document.querySelector('textarea.textarea.gmat-body-medium, textarea[placeholder*="example prompt"], textarea[aria-label*="example prompt"]');
     if (textarea) {
         if (textarea.placeholder !== DESIRED_PLACEHOLDER_TEXT) {
             textarea.placeholder = DESIRED_PLACEHOLDER_TEXT;
         }
-        // Also update aria-label if it's used for display or accessibility and contains the dynamic part
         const currentAriaLabel = textarea.getAttribute('aria-label');
         if (currentAriaLabel && currentAriaLabel.includes("example prompt") && currentAriaLabel !== DESIRED_PLACEHOLDER_TEXT) {
             textarea.setAttribute('aria-label', DESIRED_PLACEHOLDER_TEXT);
         }
-
-        // Set up a specific observer for the textarea's attributes if not already done
         if (!textareaSpecificObserver) {
             textareaSpecificObserver = new MutationObserver(mutations => {
                 mutations.forEach(mutation => {
@@ -49,26 +46,19 @@ function ensureStaticInputPlaceholder() {
             textareaSpecificObserver.observe(textarea, { attributes: true });
         }
     } else {
-        // If textarea is not found, previous specific observer might be stale
         if (textareaSpecificObserver) textareaSpecificObserver.disconnect();
         textareaSpecificObserver = null;
     }
-
-    // Target the visual rolling placeholder element
     const rollingPlaceholder = document.querySelector('ms-input-rolling-placeholder');
     if (rollingPlaceholder) {
         if (rollingPlaceholder.textContent.trim() !== DESIRED_PLACEHOLDER_TEXT) {
-            // Clear any existing children (like animated spans) to stop animation
             while (rollingPlaceholder.firstChild) {
                 rollingPlaceholder.removeChild(rollingPlaceholder.firstChild);
             }
             rollingPlaceholder.textContent = DESIRED_PLACEHOLDER_TEXT;
         }
-
-        // Set up a specific observer for the rolling placeholder's content
         if (!rollingPlaceholderSpecificObserver) {
-            rollingPlaceholderSpecificObserver = new MutationObserver(mutations => {
-                // If children are added/removed or text changes, reset it
+            rollingPlaceholderSpecificObserver = new MutationObserver(() => {
                 if (rollingPlaceholder.textContent.trim() !== DESIRED_PLACEHOLDER_TEXT) {
                     while (rollingPlaceholder.firstChild) {
                         rollingPlaceholder.removeChild(rollingPlaceholder.firstChild);
@@ -79,12 +69,8 @@ function ensureStaticInputPlaceholder() {
             rollingPlaceholderSpecificObserver.observe(rollingPlaceholder, { childList: true, characterData: true, subtree: true });
         }
     } else {
-        // If rolling placeholder is not found, previous specific observer might be stale
         if (rollingPlaceholderSpecificObserver) rollingPlaceholderSpecificObserver.disconnect();
         rollingPlaceholderSpecificObserver = null;
-
-        // Fallback: If ms-input-rolling-placeholder isn't found,
-        // try the parent div that sometimes holds placeholder text.
         const placeholderOverlayDiv = document.querySelector('div.placeholder-overlay[slot="autosize-textarea"]');
         if (placeholderOverlayDiv && !placeholderOverlayDiv.querySelector('ms-input-rolling-placeholder')) {
              if (placeholderOverlayDiv.textContent.trim() !== DESIRED_PLACEHOLDER_TEXT) {
@@ -92,201 +78,228 @@ function ensureStaticInputPlaceholder() {
                     placeholderOverlayDiv.removeChild(placeholderOverlayDiv.firstChild);
                 }
                 placeholderOverlayDiv.textContent = DESIRED_PLACEHOLDER_TEXT;
-                // A specific observer could be added here too if this path is common and dynamic
             }
         }
     }
 }
 
-// --- Your existing code (with minor adjustments for clarity/robustness) ---
-function observeMessages() {
-  // Initial attempt to find and fix placeholders, and set up specific observers
-  ensureStaticInputPlaceholder();
+// AI Studio Functions (Unchanged)
+function waitForStableTextAndInsertCopyButton(messageContainer) {
+    if (!messageContainer) return;
+    const checkInterval = setInterval(() => {
+        const likeButton = messageContainer.querySelector('mat-icon[data-mat-icon-type="font"]');
+        if (likeButton) {
+            clearInterval(checkInterval);
+            const responseElement = messageContainer.querySelector('.model-prompt-container');
+            if (!responseElement) {
+                createAIStudioCopyButton(messageContainer);
+                return;
+            }
+            let lastText = responseElement.innerText.trim();
+            let stabilityTimeout = 500;
+            let stabilityTimer = setTimeout(() => {
+                if (responseElement.innerText.trim() === lastText) {
+                    clearInterval(textChangeInterval);
+                    createAIStudioCopyButton(messageContainer);
+                }
+            }, stabilityTimeout);
+            const textChangeInterval = setInterval(() => {
+                let currentText = responseElement.innerText.trim();
+                if (currentText !== lastText) {
+                    lastText = currentText;
+                    clearTimeout(stabilityTimer);
+                    stabilityTimer = setTimeout(() => {
+                        if (responseElement.innerText.trim() === lastText) {
+                            clearInterval(textChangeInterval);
+                            createAIStudioCopyButton(messageContainer);
+                        }
+                    }, stabilityTimeout);
+                }
+            }, 500);
+        }
+    }, 300);
+}
 
-  const mainBodyObserver = new MutationObserver((mutationsList, observer) => {
-    // (Re-)Find and fix placeholders if they appear or are re-created.
-    // This will also re-establish specific observers if the elements were removed and re-added.
+function createAIStudioCopyButton(messageContainer) {
+    if (!messageContainer || messageContainer.querySelector('.custom-copy-button')) {
+        return;
+    }
+    const copyButton = document.createElement('button');
+    copyButton.className = 'custom-copy-button';
+    copyButton.textContent = 'Copy Response';
+    copyButton.style.cssText = `
+        padding: 4px 12px; background-color: #1a73e8; color: white; border: none;
+        border-radius: 4px; cursor: pointer; font-size: 13px; margin-left: 8px; float: right;
+    `;
+    copyButton.addEventListener('mouseover', () => { copyButton.style.backgroundColor = '#1557b0'; });
+    copyButton.addEventListener('mouseout', () => {
+        if (copyButton.textContent === 'Copy Response') { copyButton.style.backgroundColor = '#1a73e8'; }
+    });
+    copyButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const responseElement = messageContainer.querySelector('.model-prompt-container');
+        let responseContent = '';
+        if (responseElement) {
+            const clonedElement = responseElement.cloneNode(true);
+            const generatedLabel = clonedElement.querySelector('span.name');
+            if (generatedLabel && /^(Generated|generates)/i.test(generatedLabel.innerText)) {
+                generatedLabel.remove();
+            }
+            responseContent = clonedElement.innerText;
+        }
+        responseContent = responseContent.replace(/IGNORE_WHEN_COPYING_START[\s\S]*?IGNORE_WHEN_COPYING_END/g, '').trim();
+        navigator.clipboard.writeText(responseContent).then(() => {
+            copyButton.textContent = 'Copied!';
+            copyButton.style.backgroundColor = '#34a853';
+            setTimeout(() => {
+                copyButton.textContent = 'Copy Response';
+                copyButton.style.backgroundColor = '#1a73e8';
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy:', err);
+            copyButton.textContent = 'Error!';
+            copyButton.style.backgroundColor = '#ea4335';
+            setTimeout(() => {
+                copyButton.textContent = 'Copy Response';
+                copyButton.style.backgroundColor = '#1a73e8';
+            }, 2000);
+        });
+    });
+    let footerContainer = messageContainer.querySelector('.turn-footer');
+    if (!footerContainer) {
+        footerContainer = document.createElement('div');
+        footerContainer.className = 'turn-footer custom-extension-footer';
+        footerContainer.style.cssText = 'padding-top: 8px; text-align: right; clear: both;';
+        messageContainer.appendChild(footerContainer);
+    }
+    if (!footerContainer.querySelector('.custom-copy-button')) {
+        footerContainer.appendChild(copyButton);
+    }
+}
+
+
+// Gemini-Specific Functions
+function addGeminiCopyToResponse(responseElement) {
+    const observer = new MutationObserver(() => {
+        ensureGeminiButtonIsPresent(responseElement);
+    });
+    observer.observe(responseElement, { childList: true, subtree: true });
+    ensureGeminiButtonIsPresent(responseElement);
+}
+
+function ensureGeminiButtonIsPresent(responseElement) {
+    // --- THIS IS THE FIX ---
+    // First, define the trigger: the native toolbar at the bottom.
+    const bottomToolbar = responseElement.querySelector('message-actions');
+
+    // Next, define the location for our button: the main content area.
+    const contentContainer = responseElement.querySelector('.response-container-content');
+
+    // If EITHER the trigger (bottom toolbar) OR the location doesn't exist, stop.
+    // This ensures our button only appears when the response is fully loaded.
+    if (!bottomToolbar || !contentContainer) {
+        return;
+    }
+
+    // If both exist, check if our button is already there to prevent duplicates.
+    if (contentContainer.querySelector('.gemini-custom-button-wrapper')) {
+        return;
+    }
+
+    // If we've passed all checks, create the button.
+    createGeminiCopyButton(responseElement, contentContainer);
+}
+
+function createGeminiCopyButton(responseElement, contentContainer) {
+    // Create a wrapper to manage layout
+    const buttonWrapper = document.createElement('div');
+    buttonWrapper.className = 'gemini-custom-button-wrapper';
+    buttonWrapper.style.cssText = 'margin-bottom: 8px; overflow: auto;';
+
+    const copyButton = document.createElement('button');
+    copyButton.textContent = 'Copy Response';
+    
+    // Use the precise styles for a perfect match
+    copyButton.style.cssText = `
+        box-sizing: border-box; font-family: "Google Sans Text", "Helvetica Neue", sans-serif;
+        font-size: 13px; font-weight: 500; line-height: 20px; color: white;
+        background-color: #1a73e8; border: none; border-radius: 4px; padding: 4px 12px;
+        margin-left: 8px; float: right; cursor: pointer;
+    `;
+    
+    // Identical hover effects
+    copyButton.addEventListener('mouseover', () => { copyButton.style.backgroundColor = '#1557b0'; });
+    copyButton.addEventListener('mouseout', () => {
+        if (copyButton.textContent === 'Copy Response') { copyButton.style.backgroundColor = '#1a73e8'; }
+    });
+
+    // Identical click handler logic
+    copyButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        event.preventDefault();
+        const markdownElement = responseElement.querySelector('.markdown');
+        if (!markdownElement) {
+            console.error("Copy Error: Could not find '.markdown' content element.");
+            return;
+        }
+        navigator.clipboard.writeText(markdownElement.innerText).then(() => {
+            copyButton.textContent = 'Copied!';
+            copyButton.style.backgroundColor = '#34a853';
+            setTimeout(() => {
+                copyButton.textContent = 'Copy Response';
+                copyButton.style.backgroundColor = '#1a73e8';
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy text for Gemini: ', err);
+            copyButton.textContent = 'Error!';
+            copyButton.style.backgroundColor = '#ea4335';
+            setTimeout(() => {
+                copyButton.textContent = 'Copy Response';
+                copyButton.style.backgroundColor = '#1a73e8';
+            }, 2000);
+        });
+    });
+
+    buttonWrapper.appendChild(copyButton);
+    contentContainer.prepend(buttonWrapper);
+}
+
+
+// Unified Main Observer (Unchanged)
+function observeMessages() {
+    console.log("🚀 Initializing unified content script...");
     ensureStaticInputPlaceholder();
 
-    for (const mutation of mutationsList) {
-      if (mutation.type === 'childList') {
-        for (const node of mutation.addedNodes) {
-          if (node.nodeType === Node.ELEMENT_NODE) { // Ensure it's an element
-            // Find newly added .model-prompt-container(s)
-            const messageContainers = node.querySelectorAll('.model-prompt-container');
-            messageContainers.forEach(container => {
-              // Pass the parent element, as the original code structure implies
-              // the copy button is added to this parent.
-              if (container.parentElement) {
-                  waitForStableTextAndInsertCopyButton(container.parentElement);
-              }
-            });
+    const mainBodyObserver = new MutationObserver((mutationsList) => {
+        ensureStaticInputPlaceholder();
+        for (const mutation of mutationsList) {
+            if (mutation.type === 'childList') {
+                for (const node of mutation.addedNodes) {
+                    if (node.nodeType !== Node.ELEMENT_NODE) continue;
 
-            // Also check if the added node *itself* is a parent containing a .model-prompt-container
-            // This can happen if a whole message block is added at once.
-            if (node.querySelector && node.matches && node.querySelector('.model-prompt-container')) {
-                const modelPromptInNode = node.querySelector('.model-prompt-container');
-                if (modelPromptInNode && modelPromptInNode.parentElement === node) { // Ensure it's a direct child's parent
-                    waitForStableTextAndInsertCopyButton(node);
-                } else if (modelPromptInNode && modelPromptInNode.parentElement) { // Or any descendant
-                    waitForStableTextAndInsertCopyButton(modelPromptInNode.parentElement);
+                    //  AI Studio Logic
+                    if (node.querySelector('.model-prompt-container')) {
+                         node.querySelectorAll('.model-prompt-container').forEach(container => {
+                            if (container.parentElement) {
+                                waitForStableTextAndInsertCopyButton(container.parentElement);
+                            }
+                        });
+                    }
+
+                    //  Gemini Logic
+                    if (node.querySelector('model-response') || node.matches('model-response')) {
+                         const geminiResponses = node.querySelectorAll('model-response');
+                         geminiResponses.forEach(addGeminiCopyToResponse);
+                         if (node.matches('model-response')) {
+                            addGeminiCopyToResponse(node);
+                         }
+                    }
                 }
             }
-          }
         }
-      }
-    }
-  });
-
-  mainBodyObserver.observe(document.body, { childList: true, subtree: true });
-}
-
-// Wait for "done" button AND no text changes for 500ms
-function waitForStableTextAndInsertCopyButton(messageContainer) {
-  if (!messageContainer) return;
-
-  const checkInterval = setInterval(() => {
-    // The 'likeButton' (mat-icon) is used as an indicator that the response might be complete.
-    const likeButton = messageContainer.querySelector('mat-icon[data-mat-icon-type="font"]');
-
-    if (likeButton) {
-      clearInterval(checkInterval);
-
-      const responseElement = messageContainer.querySelector('.model-prompt-container');
-      if (!responseElement) {
-        // If the expected text element isn't found, we can't reliably check for stability.
-        // Decide whether to add the button anyway or log an error.
-        // console.warn("Could not find .model-prompt-container in:", messageContainer);
-        createCopyButton(messageContainer); // Attempt to add button, it will handle missing responseElement
-        return;
-      }
-
-      // Monitor text changes for stability
-      let lastText = responseElement.innerText.trim();
-      let stabilityCheckInterval = 500; // How often to check for text changes
-      let stabilityTimeout = 500;       // How long the text must be stable before confirming
-
-      let stabilityTimer = setTimeout(() => { // Initial check after stabilityTimeout
-        if (responseElement.innerText.trim() === lastText) {
-          clearInterval(textChangeInterval);
-          createCopyButton(messageContainer);
-        }
-      }, stabilityTimeout);
-
-      const textChangeInterval = setInterval(() => {
-        let currentText = responseElement.innerText.trim();
-        if (currentText !== lastText) {
-          lastText = currentText;
-          clearTimeout(stabilityTimer); // Reset stability timer
-          stabilityTimer = setTimeout(() => {
-            if (responseElement.innerText.trim() === lastText) { // Check again after new stability period
-              clearInterval(textChangeInterval);
-              createCopyButton(messageContainer);
-            }
-          }, stabilityTimeout);
-        }
-      }, stabilityCheckInterval);
-
-    }
-  }, 300); // Check for the 'likeButton' presence every 300ms
-}
-
-// Create the copy button
-function createCopyButton(messageContainer) {
-  if (!messageContainer || messageContainer.querySelector('.custom-copy-button')) {
-    return; // Avoid duplicate buttons or if container is invalid
-  }
-
-  const copyButton = document.createElement('button');
-  copyButton.className = 'custom-copy-button';
-  copyButton.innerHTML = 'Copy Response';
-  copyButton.style.cssText = `
-    padding: 4px 12px;
-    background-color: #1a73e8;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 13px;
-    margin-left: 8px;
-    float: right; 
-  `; // Note: float: right might require parent to clear floats or use flexbox.
-
-  copyButton.addEventListener('mouseover', () => {
-    copyButton.style.backgroundColor = '#1557b0';
-  });
-  copyButton.addEventListener('mouseout', () => {
-    copyButton.style.backgroundColor = '#1a73e8';
-  });
-
-  copyButton.addEventListener('click', (event) => {
-    event.stopPropagation(); // Prevent triggering other click listeners on parent elements
-    
-    const responseElement = messageContainer.querySelector('.model-prompt-container');
-    let responseContent = '';
-
-    if (responseElement) {
-        // To safely remove the "Generated..." text without affecting the live page,
-        // we clone the element first.
-        const clonedElement = responseElement.cloneNode(true);
-
-        // Find and remove the "Generated <language>" label from the clone.
-        // From the UI, this appears to be a <span class="name"> element.
-        const generatedLabel = clonedElement.querySelector('span.name');
-        if (generatedLabel && /^(Generated|generates)/i.test(generatedLabel.innerText)) {
-            generatedLabel.remove();
-        }
-
-        // Get the text content from the cleaned-up clone
-        responseContent = clonedElement.innerText;
-
-    } else {
-        // Fallback if the main container isn't found
-        console.warn("Copy button: .model-prompt-container not found within the provided message container for copying.");
-    }
-
-    // Remove IGNORE_WHEN_COPYING blocks
-    responseContent = responseContent.replace(/IGNORE_WHEN_COPYING_START[\s\S]*?IGNORE_WHEN_COPYING_END/g, '');
-
-    // Finally, trim any leading/trailing whitespace that might be left over.
-    responseContent = responseContent.trim();
-
-
-    navigator.clipboard.writeText(responseContent).then(() => {
-      copyButton.innerHTML = 'Copied!';
-      copyButton.style.backgroundColor = '#34a853';
-      setTimeout(() => {
-        copyButton.innerHTML = 'Copy Response';
-        copyButton.style.backgroundColor = '#1a73e8';
-      }, 2000);
-    }).catch(err => {
-      console.error('Failed to copy:', err);
-      copyButton.innerHTML = 'Error!';
-      copyButton.style.backgroundColor = '#ea4335';
-      setTimeout(() => {
-        copyButton.innerHTML = 'Copy Response';
-        copyButton.style.backgroundColor = '#1a73e8';
-      }, 2000);
     });
-  });
-
-  // Appending the button:
-  // The original code looked for '.turn-footer' or created one within messageContainer.
-  let footerContainer = messageContainer.querySelector('.turn-footer');
-  if (!footerContainer) {
-    footerContainer = document.createElement('div');
-    footerContainer.className = 'turn-footer custom-extension-footer'; // Added custom class
-    footerContainer.style.paddingTop = '8px'; // Add some space if creating new
-    footerContainer.style.textAlign = 'right'; // Helps if button is only child & floated
-    footerContainer.style.clear = 'both'; // If previous elements were floated
-    messageContainer.appendChild(footerContainer);
-  }
-
-  // Ensure button is not added multiple times to the same footer
-  if (!footerContainer.querySelector('.custom-copy-button')) {
-      footerContainer.appendChild(copyButton);
-  }
+    mainBodyObserver.observe(document.body, { childList: true, subtree: true });
 }
 
-// Start observing for messages and placeholders
+
 observeMessages();

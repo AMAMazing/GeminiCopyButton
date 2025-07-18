@@ -1,4 +1,4 @@
-# Gemini (& AI Studio) Copy Button
+# Gemini (+ AI Studio) Copy Button
 
 This browser extension enhances the user experience on Gemini & Google AI Studio by moving the "Copy" button next to the "Like" and "Dislike" buttons and setting a static placeholder for the input field.
 
