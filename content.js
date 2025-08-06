@@ -17,7 +17,6 @@ function disconnectSpecificObservers() {
 }
 
 function ensureStaticInputPlaceholder() {
-    // This function remains unchanged and will continue to manage the input placeholder text.
     const textarea = document.querySelector('textarea.textarea.gmat-body-medium, textarea[placeholder*="example prompt"], textarea[aria-label*="example prompt"]');
     if (textarea) {
         if (textarea.placeholder !== DESIRED_PLACEHOLDER_TEXT) {
@@ -83,12 +82,30 @@ function ensureStaticInputPlaceholder() {
     }
 }
 
-// AI Studio Functions (Unchanged)
+// Utility function to remove elements with classes containing specific text
+function removeElementsWithClassContaining(container, classSubstring) {
+    const elements = container.querySelectorAll('*');
+    elements.forEach(element => {
+        if (element.className && typeof element.className === 'string') {
+            if (element.className.includes(classSubstring)) {
+                element.remove();
+            }
+        } else if (element.classList) {
+            // Handle cases where className might not be a string
+            const classArray = Array.from(element.classList);
+            if (classArray.some(className => className.includes(classSubstring))) {
+                element.remove();
+            }
+        }
+    });
+}
+
+// AI Studio Functions (Updated)
 function waitForStableTextAndInsertCopyButton(messageContainer) {
     if (!messageContainer) return;
     const checkInterval = setInterval(() => {
-        const likeButton = messageContainer.querySelector('mat-icon[data-mat-icon-type="font"]');
-        if (likeButton) {
+        const thumbsDownButton = messageContainer.querySelector('button[iconname="thumb_down"]');
+        if (thumbsDownButton) {
             clearInterval(checkInterval);
             const responseElement = messageContainer.querySelector('.model-prompt-container');
             if (!responseElement) {
@@ -121,7 +138,12 @@ function waitForStableTextAndInsertCopyButton(messageContainer) {
 }
 
 function createAIStudioCopyButton(messageContainer) {
-    if (!messageContainer || messageContainer.querySelector('.custom-copy-button')) {
+    let footerContainer = messageContainer.querySelector('div.turn-footer.ng-star-inserted');
+    if (!footerContainer) {
+        console.warn("AI Studio Copy Button: Could not find footer container.");
+        return;
+    }
+    if (footerContainer.querySelector('.custom-copy-button')) {
         return;
     }
     const copyButton = document.createElement('button');
@@ -129,7 +151,7 @@ function createAIStudioCopyButton(messageContainer) {
     copyButton.textContent = 'Copy Response';
     copyButton.style.cssText = `
         padding: 4px 12px; background-color: #1a73e8; color: white; border: none;
-        border-radius: 4px; cursor: pointer; font-size: 13px; margin-left: 8px; float: right;
+        border-radius: 4px; cursor: pointer; font-size: 13px; margin-left: 8px;
     `;
     copyButton.addEventListener('mouseover', () => { copyButton.style.backgroundColor = '#1557b0'; });
     copyButton.addEventListener('mouseout', () => {
@@ -141,6 +163,13 @@ function createAIStudioCopyButton(messageContainer) {
         let responseContent = '';
         if (responseElement) {
             const clonedElement = responseElement.cloneNode(true);
+            
+            // Remove elements with classes containing "code-block-decoration"
+            removeElementsWithClassContaining(clonedElement, 'code-block-decoration');
+            
+            // Remove elements with classes containing "mat-expansion-panel-header" (for AI Studio)
+            removeElementsWithClassContaining(clonedElement, 'mat-expansion-panel-header');
+            
             const generatedLabel = clonedElement.querySelector('span.name');
             if (generatedLabel && /^(Generated|generates)/i.test(generatedLabel.innerText)) {
                 generatedLabel.remove();
@@ -165,18 +194,8 @@ function createAIStudioCopyButton(messageContainer) {
             }, 2000);
         });
     });
-    let footerContainer = messageContainer.querySelector('.turn-footer');
-    if (!footerContainer) {
-        footerContainer = document.createElement('div');
-        footerContainer.className = 'turn-footer custom-extension-footer';
-        footerContainer.style.cssText = 'padding-top: 8px; text-align: right; clear: both;';
-        messageContainer.appendChild(footerContainer);
-    }
-    if (!footerContainer.querySelector('.custom-copy-button')) {
-        footerContainer.appendChild(copyButton);
-    }
+    footerContainer.appendChild(copyButton);
 }
-
 
 // Gemini-Specific Functions
 function addGeminiCopyToResponse(responseElement) {
@@ -188,61 +207,61 @@ function addGeminiCopyToResponse(responseElement) {
 }
 
 function ensureGeminiButtonIsPresent(responseElement) {
-    // --- THIS IS THE FIX ---
-    // First, define the trigger: the native toolbar at the bottom.
     const bottomToolbar = responseElement.querySelector('message-actions');
-
-    // Next, define the location for our button: the main content area.
     const contentContainer = responseElement.querySelector('.response-container-content');
-
-    // If EITHER the trigger (bottom toolbar) OR the location doesn't exist, stop.
-    // This ensures our button only appears when the response is fully loaded.
     if (!bottomToolbar || !contentContainer) {
         return;
     }
-
-    // If both exist, check if our button is already there to prevent duplicates.
     if (contentContainer.querySelector('.gemini-custom-button-wrapper')) {
         return;
     }
-
-    // If we've passed all checks, create the button.
     createGeminiCopyButton(responseElement, contentContainer);
 }
 
+// Enhanced Gemini Copy Button Function
 function createGeminiCopyButton(responseElement, contentContainer) {
-    // Create a wrapper to manage layout
     const buttonWrapper = document.createElement('div');
     buttonWrapper.className = 'gemini-custom-button-wrapper';
     buttonWrapper.style.cssText = 'margin-bottom: 8px; overflow: auto;';
-
     const copyButton = document.createElement('button');
     copyButton.textContent = 'Copy Response';
-    
-    // Use the precise styles for a perfect match
     copyButton.style.cssText = `
         box-sizing: border-box; font-family: "Google Sans Text", "Helvetica Neue", sans-serif;
         font-size: 13px; font-weight: 500; line-height: 20px; color: white;
         background-color: #1a73e8; border: none; border-radius: 4px; padding: 4px 12px;
         margin-left: 8px; float: right; cursor: pointer;
     `;
-    
-    // Identical hover effects
     copyButton.addEventListener('mouseover', () => { copyButton.style.backgroundColor = '#1557b0'; });
     copyButton.addEventListener('mouseout', () => {
         if (copyButton.textContent === 'Copy Response') { copyButton.style.backgroundColor = '#1a73e8'; }
     });
 
-    // Identical click handler logic
     copyButton.addEventListener('click', (event) => {
         event.stopPropagation();
         event.preventDefault();
+
         const markdownElement = responseElement.querySelector('.markdown');
         if (!markdownElement) {
             console.error("Copy Error: Could not find '.markdown' content element.");
             return;
         }
-        navigator.clipboard.writeText(markdownElement.innerText).then(() => {
+
+        // 1. Clone the response content to avoid modifying the live page.
+        const clonedMarkdown = markdownElement.cloneNode(true);
+
+        // 2. Remove elements with classes containing "code-block-decoration"
+        //    This will catch all variations like "code-block-decoration header-formatted" etc.
+        removeElementsWithClassContaining(clonedMarkdown, 'code-block-decoration');
+        
+        // 3. Also remove the original specific selector for backward compatibility
+        const codeBlockHeaders = clonedMarkdown.querySelectorAll('div.code-block-decoration');
+        codeBlockHeaders.forEach(header => header.remove());
+
+        // 4. Get the innerText of the cleaned-up clone, which now excludes the unwanted headers.
+        const textToCopy = clonedMarkdown.innerText;
+
+        // 5. Write the cleaned text to the clipboard.
+        navigator.clipboard.writeText(textToCopy).then(() => {
             copyButton.textContent = 'Copied!';
             copyButton.style.backgroundColor = '#34a853';
             setTimeout(() => {
@@ -263,7 +282,6 @@ function createGeminiCopyButton(responseElement, contentContainer) {
     buttonWrapper.appendChild(copyButton);
     contentContainer.prepend(buttonWrapper);
 }
-
 
 // Unified Main Observer (Unchanged)
 function observeMessages() {
@@ -300,6 +318,5 @@ function observeMessages() {
     });
     mainBodyObserver.observe(document.body, { childList: true, subtree: true });
 }
-
 
 observeMessages();
