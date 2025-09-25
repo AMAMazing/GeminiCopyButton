@@ -138,64 +138,109 @@ function waitForStableTextAndInsertCopyButton(messageContainer) {
 }
 
 function createAIStudioCopyButton(messageContainer) {
-    let footerContainer = messageContainer.querySelector('div.turn-footer.ng-star-inserted');
+    const footerContainer = messageContainer.querySelector('div.turn-footer.ng-star-inserted');
+    const imageElement = messageContainer.querySelector('.image-container img, img.decoded-image, img[src^="blob:"]');
+
     if (!footerContainer) {
         console.warn("AI Studio Copy Button: Could not find footer container.");
         return;
     }
-    if (footerContainer.querySelector('.custom-copy-button')) {
-        return;
-    }
-    const copyButton = document.createElement('button');
-    copyButton.className = 'custom-copy-button';
-    copyButton.textContent = 'Copy Response';
-    copyButton.style.cssText = `
-        padding: 4px 12px; background-color: #1a73e8; color: white; border: none;
-        border-radius: 4px; cursor: pointer; font-size: 13px; margin-left: 8px;
-    `;
-    copyButton.addEventListener('mouseover', () => { copyButton.style.backgroundColor = '#1557b0'; });
-    copyButton.addEventListener('mouseout', () => {
-        if (copyButton.textContent === 'Copy Response') { copyButton.style.backgroundColor = '#1a73e8'; }
-    });
-    copyButton.addEventListener('click', (event) => {
-        event.stopPropagation();
-        const responseElement = messageContainer.querySelector('.model-prompt-container');
-        let responseContent = '';
-        if (responseElement) {
-            const clonedElement = responseElement.cloneNode(true);
-            
-            // Remove elements with classes containing "code-block-decoration"
-            removeElementsWithClassContaining(clonedElement, 'code-block-decoration');
-            
-            // Remove elements with classes containing "mat-expansion-panel-header" (for AI Studio)
-            removeElementsWithClassContaining(clonedElement, 'mat-expansion-panel-header');
-            
-            const generatedLabel = clonedElement.querySelector('span.name');
-            if (generatedLabel && /^(Generated|generates)/i.test(generatedLabel.innerText)) {
-                generatedLabel.remove();
-            }
-            responseContent = clonedElement.innerText;
+
+    // Check if this is a response with an image
+    if (imageElement) {
+        // --- NEW LOGIC FOR IMAGE RESPONSE ---
+        // Create only the "Copy Image" button.
+
+        if (footerContainer.querySelector('.custom-copy-image-button')) {
+            return; // Button already exists
         }
-        responseContent = responseContent.replace(/IGNORE_WHEN_COPYING_START[\s\S]*?IGNORE_WHEN_COPYING_END/g, '').trim();
-        navigator.clipboard.writeText(responseContent).then(() => {
-            copyButton.textContent = 'Copied!';
-            copyButton.style.backgroundColor = '#34a853';
-            setTimeout(() => {
-                copyButton.textContent = 'Copy Response';
-                copyButton.style.backgroundColor = '#1a73e8';
-            }, 2000);
-        }).catch(err => {
-            console.error('Failed to copy:', err);
-            copyButton.textContent = 'Error!';
-            copyButton.style.backgroundColor = '#ea4335';
-            setTimeout(() => {
-                copyButton.textContent = 'Copy Response';
-                copyButton.style.backgroundColor = '#1a73e8';
-            }, 2000);
+
+        const copyImageButton = document.createElement('button');
+        copyImageButton.className = 'custom-copy-image-button';
+        copyImageButton.textContent = 'Copy Image';
+        copyImageButton.style.cssText = `
+            padding: 4px 12px; background-color: #34a853; color: white; border: none;
+            border-radius: 4px; cursor: pointer; font-size: 13px; margin-left: 8px;
+        `;
+        copyImageButton.addEventListener('mouseover', () => { copyImageButton.style.backgroundColor = '#2c8a42'; });
+        copyImageButton.addEventListener('mouseout', () => {
+            if (copyImageButton.textContent === 'Copy Image') { copyImageButton.style.backgroundColor = '#34a853'; }
         });
-    });
-    footerContainer.appendChild(copyButton);
+        copyImageButton.addEventListener('click', async (event) => {
+            event.stopPropagation();
+            copyImageButton.textContent = 'Copying...';
+            try {
+                const response = await fetch(imageElement.src);
+                const blob = await response.blob();
+                await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+                copyImageButton.textContent = 'Image Copied!';
+                setTimeout(() => {
+                    copyImageButton.textContent = 'Copy Image';
+                }, 2000);
+            } catch (err) {
+                console.error('Failed to copy image:', err);
+                copyImageButton.textContent = 'Error!';
+                copyImageButton.style.backgroundColor = '#ea4335';
+                setTimeout(() => {
+                    copyImageButton.textContent = 'Copy Image';
+                    copyImageButton.style.backgroundColor = '#34a853';
+                }, 2000);
+            }
+        });
+        footerContainer.appendChild(copyImageButton);
+
+    } else {
+        // --- ORIGINAL LOGIC FOR TEXT-ONLY RESPONSE ---
+        if (footerContainer.querySelector('.custom-copy-button')) {
+            return;
+        }
+        const copyButton = document.createElement('button');
+        copyButton.className = 'custom-copy-button';
+        copyButton.textContent = 'Copy Response';
+        copyButton.style.cssText = `
+            padding: 4px 12px; background-color: #1a73e8; color: white; border: none;
+            border-radius: 4px; cursor: pointer; font-size: 13px; margin-left: 8px;
+        `;
+        copyButton.addEventListener('mouseover', () => { copyButton.style.backgroundColor = '#1557b0'; });
+        copyButton.addEventListener('mouseout', () => {
+            if (copyButton.textContent === 'Copy Response') { copyButton.style.backgroundColor = '#1a73e8'; }
+        });
+        copyButton.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const responseElement = messageContainer.querySelector('.model-prompt-container');
+            let responseContent = '';
+            if (responseElement) {
+                const clonedElement = responseElement.cloneNode(true);
+                removeElementsWithClassContaining(clonedElement, 'code-block-decoration');
+                removeElementsWithClassContaining(clonedElement, 'mat-expansion-panel-header');
+                const generatedLabel = clonedElement.querySelector('span.name');
+                if (generatedLabel && /^(Generated|generates)/i.test(generatedLabel.innerText)) {
+                    generatedLabel.remove();
+                }
+                responseContent = clonedElement.innerText;
+            }
+            responseContent = responseContent.replace(/IGNORE_WHEN_COPYING_START[\s\S]*?IGNORE_WHEN_COPYING_END/g, '').trim();
+            navigator.clipboard.writeText(responseContent).then(() => {
+                copyButton.textContent = 'Copied!';
+                copyButton.style.backgroundColor = '#34a853';
+                setTimeout(() => {
+                    copyButton.textContent = 'Copy Response';
+                    copyButton.style.backgroundColor = '#1a73e8';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                copyButton.textContent = 'Error!';
+                copyButton.style.backgroundColor = '#ea4335';
+                setTimeout(() => {
+                    copyButton.textContent = 'Copy Response';
+                    copyButton.style.backgroundColor = '#1a73e8';
+                }, 2000);
+            });
+        });
+        footerContainer.appendChild(copyButton);
+    }
 }
+
 
 // Gemini-Specific Functions
 function addGeminiCopyToResponse(responseElement) {
