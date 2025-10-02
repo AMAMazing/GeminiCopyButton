@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Gemini Copy button",
-  "version": "5.1.0",
+  "version": "5.2.0",
   "description": "Adds a custom copy button to Google's AI Studio and Gemini responses, and sets a static input placeholder for AI studio too!.",
   "permissions": [],
   "action": {

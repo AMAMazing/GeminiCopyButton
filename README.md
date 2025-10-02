@@ -1,6 +1,6 @@
 # Gemini (+ AI Studio) Copy Button
 
-This browser extension enhances the user experience on Gemini & Google AI Studio by moving the "Copy" button next to the "Like" and "Dislike" buttons and setting a static placeholder for the input field.
+This browser extension enhances the user experience on Gemini & Google AI Studio by moving the "Copy" button next to the "Like" and "Dislike" buttons and setting a static placeholder for the input field, and automatic dismissal of feedback screens.
 
 ## Features
 
@@ -8,6 +8,7 @@ This browser extension enhances the user experience on Gemini & Google AI Studio
 -   **Copies formatted content:** Preserves markdown formatting (headers, code blocks, lists, etc.) when copying.
 -   **Static Input Placeholder:** Sets a consistent "Type something" placeholder in the main input field, preventing distracting dynamic text.
 -   **Easy to use:** Automatically works on the Google Gemini & AI Studio website without any manual steps.
+-   **Auto-Skip for AI Studio:** Automatically clicks the "Skip" button on pop-ups in AI Studio, saving you a click and getting you to the prompt faster.
 
 ## Installation
 
@@ -33,6 +34,7 @@ This browser extension enhances the user experience on Gemini & Google AI Studio
 The extension uses a content script that runs on the Google AI Studio website. It observes changes to the page to:
 -   Add a custom "Copy Response" button to each assistant message. When clicked, this button extracts the formatted content from the message and copies it to the clipboard.
 -   Identify the main input field and set its placeholder text to "Type something", overriding the default dynamic placeholder.
+-   Detect and automatically click the "Skip" button on certain AI Studio modals to streamline the user flow.
 
 ## Disclaimer
 

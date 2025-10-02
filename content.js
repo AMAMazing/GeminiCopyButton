@@ -100,7 +100,21 @@ function removeElementsWithClassContaining(container, classSubstring) {
     });
 }
 
-// AI Studio Functions (Updated)
+// --- UPDATED --- Auto Skip Button Function is now simpler
+function tryClickSkipButton(node) {
+    // Looks for the skip button within the newly added node.
+    // This is more efficient than searching the whole document every time.
+    const skipButton = node.querySelector('button[data-test-id="skip-button"]');
+    if (skipButton) {
+        console.log("AI Studio Skip button found, clicking now.");
+        skipButton.click();
+        return true; // Indicate that we found and clicked it
+    }
+    return false; // Indicate it wasn't found
+}
+
+
+// AI Studio Functions (Unchanged)
 function waitForStableTextAndInsertCopyButton(messageContainer) {
     if (!messageContainer) return;
     const checkInterval = setInterval(() => {
@@ -219,7 +233,7 @@ function createAIStudioCopyButton(messageContainer) {
                 }
                 responseContent = clonedElement.innerText;
             }
-            responseContent = responseContent.replace(/IGNORE_WHEN_COPYING_START[\s\S]*?IGNORE_WHEN_COPYING_END/g, '').trim();
+            responseContent = responseContent.replace(/^\s*$(?:\r\n?|\n)/gm, "").trim();
             navigator.clipboard.writeText(responseContent).then(() => {
                 copyButton.textContent = 'Copied!';
                 copyButton.style.backgroundColor = '#34a853';
@@ -242,7 +256,7 @@ function createAIStudioCopyButton(messageContainer) {
 }
 
 
-// Gemini-Specific Functions
+// Gemini-Specific Functions (Unchanged)
 function addGeminiCopyToResponse(responseElement) {
     const observer = new MutationObserver(() => {
         ensureGeminiButtonIsPresent(responseElement);
@@ -263,7 +277,6 @@ function ensureGeminiButtonIsPresent(responseElement) {
     createGeminiCopyButton(responseElement, contentContainer);
 }
 
-// Enhanced Gemini Copy Button Function
 function createGeminiCopyButton(responseElement, contentContainer) {
     const buttonWrapper = document.createElement('div');
     buttonWrapper.className = 'gemini-custom-button-wrapper';
@@ -290,22 +303,13 @@ function createGeminiCopyButton(responseElement, contentContainer) {
             console.error("Copy Error: Could not find '.markdown' content element.");
             return;
         }
-
-        // 1. Clone the response content to avoid modifying the live page.
-        const clonedMarkdown = markdownElement.cloneNode(true);
-
-        // 2. Remove elements with classes containing "code-block-decoration"
-        //    This will catch all variations like "code-block-decoration header-formatted" etc.
-        removeElementsWithClassContaining(clonedMarkdown, 'code-block-decoration');
         
-        // 3. Also remove the original specific selector for backward compatibility
+        const clonedMarkdown = markdownElement.cloneNode(true);
+        removeElementsWithClassContaining(clonedMarkdown, 'code-block-decoration');
         const codeBlockHeaders = clonedMarkdown.querySelectorAll('div.code-block-decoration');
         codeBlockHeaders.forEach(header => header.remove());
-
-        // 4. Get the innerText of the cleaned-up clone, which now excludes the unwanted headers.
         const textToCopy = clonedMarkdown.innerText;
 
-        // 5. Write the cleaned text to the clipboard.
         navigator.clipboard.writeText(textToCopy).then(() => {
             copyButton.textContent = 'Copied!';
             copyButton.style.backgroundColor = '#34a853';
@@ -328,7 +332,8 @@ function createGeminiCopyButton(responseElement, contentContainer) {
     contentContainer.prepend(buttonWrapper);
 }
 
-// Unified Main Observer (Unchanged)
+
+// --- UPDATED --- Unified Main Observer 
 function observeMessages() {
     console.log("🚀 Initializing unified content script...");
     ensureStaticInputPlaceholder();
@@ -340,8 +345,12 @@ function observeMessages() {
                 for (const node of mutation.addedNodes) {
                     if (node.nodeType !== Node.ELEMENT_NODE) continue;
 
-                    //  AI Studio Logic
-                    if (node.querySelector('.model-prompt-container')) {
+                    // --- NEW, ROBUST LOGIC FOR SKIP BUTTON ---
+                    // Always check any new node to see if it contains the skip button.
+                    tryClickSkipButton(node);
+
+                    //  AI Studio Copy Button Logic
+                    if (node.querySelector('.model-prompt-container') || node.closest('.model-prompt-container')) {
                          node.querySelectorAll('.model-prompt-container').forEach(container => {
                             if (container.parentElement) {
                                 waitForStableTextAndInsertCopyButton(container.parentElement);
@@ -364,4 +373,4 @@ function observeMessages() {
     mainBodyObserver.observe(document.body, { childList: true, subtree: true });
 }
 
-observeMessages();
+observeMessages();      
