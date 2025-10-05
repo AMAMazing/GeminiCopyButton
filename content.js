@@ -233,7 +233,7 @@ function createAIStudioCopyButton(messageContainer) {
                 }
                 responseContent = clonedElement.innerText;
             }
-            responseContent = responseContent.replace(/^\s*$(?:\r\n?|\n)/gm, "").trim();
+            responseContent = responseContent.replace(/IGNORE_WHEN_COPYING_START[\s\S]*?IGNORE_WHEN_COPYING_END/g, '').trim();
             navigator.clipboard.writeText(responseContent).then(() => {
                 copyButton.textContent = 'Copied!';
                 copyButton.style.backgroundColor = '#34a853';
